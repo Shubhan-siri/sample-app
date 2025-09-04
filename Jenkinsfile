@@ -11,15 +11,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Clean workspace to avoid "not in a git directory" error
-                sh 'rm -rf *' 
-                // Clone GitHub repo
-                git branch: 'main', url: 'https://github.com/Shubhan-siri/sample-app.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${ECR_REPO}:${IMAGE_TAG} ."
@@ -29,7 +20,8 @@ pipeline {
         stage('Login to ECR') {
             steps {
                 sh '''
-                    aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
+                    aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+                    docker login --username AWS --password-stdin $ECR_REPO
                 '''
             }
         }
@@ -57,10 +49,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline executed successfully!"
+            echo "✅ Pipeline executed successfully!"
         }
         failure {
-            echo "Pipeline failed. Check the logs."
+            echo "❌ Pipeline failed. Check the logs."
         }
     }
 }
