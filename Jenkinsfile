@@ -6,11 +6,20 @@ pipeline {
         ECR_REPO = '607458533394.dkr.ecr.ap-south-1.amazonaws.com/my-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
         K8S_CLUSTER = 'sample-eks-cluster'
-        VPC_ID = 'vpc-0b339a0a078bf77d6'
-        SUBNET_IDS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                        rm -rf *
+                        git clone https://$GITHUB_TOKEN@github.com/Shubhan-siri/sample-app.git .
+                    '''
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${ECR_REPO}:${IMAGE_TAG} ."
