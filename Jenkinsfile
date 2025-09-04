@@ -11,12 +11,20 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                deleteDir()   // Safe cleanup of workspace
                 withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                     sh '''
-                        rm -rf *
                         git clone https://$GITHUB_TOKEN@github.com/Shubhan-siri/sample-app.git .
                     '''
                 }
+            }
+        }
+
+        stage('Debug Workspace') {
+            steps {
+                sh 'echo "📂 Current Workspace:"'
+                sh 'pwd'
+                sh 'ls -la'
             }
         }
 
