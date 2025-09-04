@@ -52,13 +52,13 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    sh """
+                    sh '''
                         aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $K8S_CLUSTER
                         kubectl apply -f k8s/service.yaml
                         kubectl apply -f k8s/deployment.yaml
                         kubectl set image deployment/$(kubectl get deployment -o jsonpath='{.items[0].metadata.name}') \
                         $(kubectl get deployment -o jsonpath='{.items[0].spec.template.spec.containers[0].name}')=${ECR_REPO}:${IMAGE_TAG} --record
-                    """
+                    '''
                 }
             }
         }
