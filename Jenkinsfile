@@ -6,22 +6,49 @@ pipeline {
         ECR_REPO = '607458533394.dkr.ecr.ap-south-1.amazonaws.com/my-app'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         EKS_CLUSTER = 'sample-eks-cluster'
+        VPC_ID = 'vpc-0b339a0a078bf77d6'
+        SUBNETS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                // Pull code from your GitHub repo
                 git branch: 'main', url: 'https://github.com/Shubhan-siri/sample-app.git'
+            }
+        }
+
+        stage('Create EKS Cluster (if not exists)') {
+            steps {
+                script {
+                    def clusterExists = sh(script: "aws eks describe-cluster --name ${EKS_CLUSTER} --region ${AWS_DEFAULT_REGION} >/dev/null 2>&1 && echo true || echo false", returnStdout: true).trim()
+                    if (clusterExists == 'false') {
+                        echo "Cluster does not exist. Creating..."
+                        sh """
+                        eksctl create cluster \\
+                            --name ${EKS_CLUSTER} \\
+                            --region ${AWS_DEFAULT_REGION} \\
+                            --version 1.30 \\
+                            --vpc-private-subnets=${SUBNETS} \\
+                            --vpc-public-subnets=${SUBNETS} \\
+                            --nodegroup-name standard-workers \\
+                            --node-type t3.small \\
+                            --nodes 2 \\
+                            --nodes-min 1 \\
+                            --nodes-max 3 \\
+                            --ssh-access \\
+                            --ssh-public-key shubhan-key
+                        """
+                    } else {
+                        echo "Cluster already exists. Skipping creation."
+                    }
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image from Dockerfile
                     sh 'docker build -t my-app .'
-                    // Tag the image with BUILD_NUMBER for versioning
                     sh "docker tag my-app:latest ${ECR_REPO}:${IMAGE_TAG}"
                 }
             }
@@ -30,7 +57,6 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 script {
-                    // Login to ECR and push the image
                     sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
                     sh "docker push ${ECR_REPO}:${IMAGE_TAG}"
                 }
@@ -40,9 +66,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 script {
-                    // Configure kubectl to connect to your EKS cluster
                     sh "aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
-                    // Update deployment with the new image
                     sh """
                     kubectl set image deployment/my-app my-app=${ECR_REPO}:${IMAGE_TAG} --record
                     kubectl rollout status deployment/my-app
