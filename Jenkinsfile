@@ -13,6 +13,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                // Clean workspace to avoid "not in a git directory" error
+                sh 'rm -rf *' 
+                // Clone GitHub repo
                 git branch: 'main', url: 'https://github.com/Shubhan-siri/sample-app.git'
             }
         }
