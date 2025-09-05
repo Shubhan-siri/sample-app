@@ -47,7 +47,14 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    # Ensure EKS cluster exists or create it
+                    # Install eksctl if missing
+                    if ! command -v eksctl >/dev/null 2>&1; then
+                      echo "Installing eksctl..."
+                      curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+                      mv /tmp/eksctl /usr/local/bin
+                    fi
+
+                    # Create cluster if not exists
                     if ! eksctl get cluster --name $EKS_CLUSTER --region $AWS_DEFAULT_REGION >/dev/null 2>&1; then
                         echo "Creating EKS Cluster..."
                         eksctl create cluster \
@@ -69,7 +76,7 @@ pipeline {
                     # Update kubeconfig
                     aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $EKS_CLUSTER
 
-                    # Deploy application
+                    # Deploy or update application
                     if kubectl get deployment my-deployment >/dev/null 2>&1; then
                         echo "Updating existing deployment..."
                         kubectl set image deployment/my-deployment my-container=$ECR_REPO:$IMAGE_TAG
