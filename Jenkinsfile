@@ -6,10 +6,11 @@ pipeline {
         ECR_REPO = '607458533394.dkr.ecr.ap-south-1.amazonaws.com/my-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
         EKS_CLUSTER = 'sample-eks-cluster'
-        VPC_ID = 'vpc-0c8e1ff2f414eacb0'
-        GITHUB_TOKEN = credentials('github-token')
-        NODE_TYPE = 't3.small'
+        NODE_TYPE = 't3.small'               // Node type t3.small
         NODEGROUP_NAME = 'standard-workers'
+        GITHUB_TOKEN = credentials('github-token')
+        VPC_PRIVATE_SUBNETS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
+        VPC_PUBLIC_SUBNETS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
     }
 
     stages {
@@ -56,12 +57,13 @@ pipeline {
 
                     # Create cluster if not exists
                     if ! eksctl get cluster --name $EKS_CLUSTER --region $AWS_DEFAULT_REGION >/dev/null 2>&1; then
-                        echo "Creating EKS Cluster..."
+                        echo "Creating EKS Cluster with t3.small nodes..."
                         eksctl create cluster \
                         --name $EKS_CLUSTER \
                         --region $AWS_DEFAULT_REGION \
                         --version 1.30 \
-                        --vpc-id $VPC_ID \
+                        --vpc-private-subnets=$VPC_PRIVATE_SUBNETS \
+                        --vpc-public-subnets=$VPC_PUBLIC_SUBNETS \
                         --nodegroup-name $NODEGROUP_NAME \
                         --node-type $NODE_TYPE \
                         --nodes 2 \
