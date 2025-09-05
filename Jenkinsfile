@@ -6,11 +6,10 @@ pipeline {
         ECR_REPO = '607458533394.dkr.ecr.ap-south-1.amazonaws.com/my-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
         EKS_CLUSTER = 'sample-eks-cluster'
-        NODE_TYPE = 't3.small'               // Node type t3.small
-        NODEGROUP_NAME = 'standard-workers'
+        VPC_ID = 'vpc-0c8e1ff2f414eacb0'
         GITHUB_TOKEN = credentials('github-token')
-        VPC_PRIVATE_SUBNETS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
-        VPC_PUBLIC_SUBNETS = 'subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5'
+        NODE_TYPE = 't3.small'
+        NODEGROUP_NAME = 'standard-workers'
     }
 
     stages {
@@ -55,6 +54,14 @@ pipeline {
                       mv /tmp/eksctl /usr/local/bin
                     fi
 
+                    # Install kubectl if missing
+                    if ! command -v kubectl >/dev/null 2>&1; then
+                      echo "Installing kubectl..."
+                      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                      chmod +x kubectl
+                      mv kubectl /usr/local/bin/
+                    fi
+
                     # Create cluster if not exists
                     if ! eksctl get cluster --name $EKS_CLUSTER --region $AWS_DEFAULT_REGION >/dev/null 2>&1; then
                         echo "Creating EKS Cluster with t3.small nodes..."
@@ -62,8 +69,8 @@ pipeline {
                         --name $EKS_CLUSTER \
                         --region $AWS_DEFAULT_REGION \
                         --version 1.30 \
-                        --vpc-private-subnets=$VPC_PRIVATE_SUBNETS \
-                        --vpc-public-subnets=$VPC_PUBLIC_SUBNETS \
+                        --vpc-private-subnets=subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5 \
+                        --vpc-public-subnets=subnet-062a3fed3a8b1d172,subnet-06b238ff5123bcea5 \
                         --nodegroup-name $NODEGROUP_NAME \
                         --node-type $NODE_TYPE \
                         --nodes 2 \
