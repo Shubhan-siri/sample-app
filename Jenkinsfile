@@ -93,7 +93,7 @@ pipeline {
                     else
                         echo "Creating new deployment..."
                         kubectl create deployment my-deployment --image=$ECR_REPO:$IMAGE_TAG
-                        kubectl expose deployment my-deployment --type=LoadBalancer --port=80 --target-port=80
+                        kubectl expose deployment my-deployment --type=LoadBalancer --port=80 --target-port=3000
                     fi
                     '''
                 }
